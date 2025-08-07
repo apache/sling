@@ -50,6 +50,19 @@ options.arguments().forEach { arg ->
         asfYaml['github'] = [:]
     }
 
+    if  ( ! asfYaml['github']['pull_requests'] ) {
+        asfYaml['github']['pull_requests'] = [:]
+    }
+
+    // delete branches on merge
+    asfYaml['github']['pull_requests']['del_branch_on_merge'] = true
+
+    // prevent force pushes to default branch and don't allow it to be deleted
+    if ( ! asfYaml['github']['protected_branches'] ) {
+        asfYaml['github']['protected_branches'] = [:]
+    }
+    asfYaml['github']['protected_branches']['master'] = [:]
+
     // set up autolinks ; note: missing merge
     // https://cwiki.apache.org/confluence/display/INFRA/Git+-+.asf.yaml+features#Git.asf.yamlfeatures-AutolinksforJira
     def autolinks = asfYaml['github']['autolinks']
