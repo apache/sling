@@ -16,7 +16,6 @@
   <project path='jcrinstall-bundle-archetype' name='sling-jcrinstall-bundle-archetype.git' description='Apache Sling JCRInstall Bundle Archetype (deprecated)' />
   <project path='jspc-maven-plugin' name='sling-jspc-maven-plugin.git' description='Apache Sling Maven JSP Compiler Plugin' />
   <project path='kickstart-maven-plugin' name='sling-kickstart-maven-plugin.git' description='Apache Sling Kickstart Maven Plugin' />
-  <project path='launchpad-comparator' name='sling-launchpad-comparator.git' description='Apache Sling Launchpad Comparator' />
   <project path='launchpad-debian' name='sling-launchpad-debian.git' description='Apache Sling Launchpad Debian Package Builder' />
   <project path='launchpad-standalone-archetype' name='sling-launchpad-standalone-archetype.git' description='Apache Sling Launchpad Standalone Archetype (deprecated)' />
   <project path='launchpad-webapp-archetype' name='sling-launchpad-webapp-archetype.git' description='Apache Sling Launchpad Webapp Archetype (deprecated)' />
@@ -219,11 +218,9 @@
   <project path='org-apache-sling-launchpad-base' name='sling-org-apache-sling-launchpad-base.git' description='Apache Sling Launchpad Base' groups='launchpad' />
   <project path='org-apache-sling-launchpad-contrib-testing' name='sling-org-apache-sling-launchpad-contrib-testing.git' description='Apache Sling Launchpad Contrib Testing' groups='launchpad' />
   <project path='org-apache-sling-launchpad-installer' name='sling-org-apache-sling-launchpad-installer.git' description='Apache Sling Launchpad Installer' groups='launchpad' />
-  <project path='org-apache-sling-launchpad-integration-tests' name='sling-org-apache-sling-launchpad-integration-tests.git' description='Apache Sling Launchpad Integration Tests' groups='launchpad' />
   <project path='org-apache-sling-launchpad-startupmanager' name='sling-org-apache-sling-launchpad-startupmanager.git' description='Apache Sling Launchpad Startup Manager' groups='launchpad' />
   <project path='org-apache-sling-launchpad-test-bundles' name='sling-org-apache-sling-launchpad-test-bundles.git' description='Apache Sling Launchpad Test Bundles (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-launchpad-test-fragment' name='sling-org-apache-sling-launchpad-test-fragment.git' description='Apache Sling Launchpad Testing Fragment Bundle (deprecated)' groups='launchpad' />
-  <project path='org-apache-sling-launchpad-test-services' name='sling-org-apache-sling-launchpad-test-services.git' description='Apache Sling Launchpad Testing Services' groups='launchpad' />
   <project path='org-apache-sling-launchpad-test-services-war' name='sling-org-apache-sling-launchpad-test-services-war.git' description='Apache Sling Launchpad Testing Services WAR (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-launchpad-testing' name='sling-org-apache-sling-launchpad-testing.git' description='Apache Sling Launchpad Testing (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-launchpad-testing-war' name='sling-org-apache-sling-launchpad-testing-war.git' description='Apache Sling Launchpd Testing WAR (deprecated)' groups='launchpad' />
@@ -305,7 +302,9 @@
   <project path='org-apache-sling-starter' name='sling-org-apache-sling-starter.git' description='Apache Sling Starter Application' />
   <project path='org-apache-sling-starter-content' name='sling-org-apache-sling-starter-content.git' description='Apache Sling Starter Content' groups='starter' />
   <project path='org-apache-sling-starter-docker' name='sling-org-apache-sling-starter-docker.git' description='Apache Sling Starter Docker Image' groups='starter' />
+  <project path='org-apache-sling-starter-integration-tests' name='sling-org-apache-sling-starter-integration-tests.git' description='Apache Sling Launchpad Integration Tests' groups='starter' />
   <project path='org-apache-sling-starter-startup' name='sling-org-apache-sling-starter-startup.git' description='Apache Sling Starter Startup Module (deprecated)' groups='starter' />
+  <project path='org-apache-sling-starter-test-services' name='sling-org-apache-sling-starter-test-services.git' description='Apache Sling Launchpad Testing Services' groups='starter' />
   <project path='org-apache-sling-startupfilter' name='sling-org-apache-sling-startupfilter.git' description='Apache Sling Startup Filter' />
   <project path='org-apache-sling-startupfilter-disabler' name='sling-org-apache-sling-startupfilter-disabler.git' description='Apache Sling Startup Filter Disabler' />
   <project path='org-apache-sling-superimposing' name='sling-org-apache-sling-superimposing.git' description='Apache Sling Superimposing Resource Provider' />
@@ -344,6 +343,7 @@
   <project path='slingpackager' name='sling-slingpackager.git' description='A tool for working with Apache Sling content packages' />
   <project path='slingstart-archetype' name='sling-slingstart-archetype.git' description='Apache Sling Slingstart Archetype (deprecated)' />
   <project path='slingstart-maven-plugin' name='sling-slingstart-maven-plugin.git' description='Apache Sling SlingStart Maven Plugin' />
+  <project path='starter-comparator' name='sling-starter-comparator.git' description='Apache Sling Launchpad Comparator' />
   <project path='taglib-archetype' name='sling-taglib-archetype.git' description='Apache Sling Taglib Archetype (deprecated)' />
   <project path='tooling-github' name='sling-tooling-github.git' description='Apache sling' revision='main' />
   <project path='tooling-jenkins' name='sling-tooling-jenkins.git' description='Apache Sling Jenkins Tooling' />
