@@ -224,6 +224,7 @@
   <project path='org-apache-sling-launchpad-test-services-war' name='sling-org-apache-sling-launchpad-test-services-war.git' description='Apache Sling Launchpad Testing Services WAR (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-launchpad-testing' name='sling-org-apache-sling-launchpad-testing.git' description='Apache Sling Launchpad Testing (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-launchpad-testing-war' name='sling-org-apache-sling-launchpad-testing-war.git' description='Apache Sling Launchpd Testing WAR (deprecated)' groups='launchpad' />
+  <project path='org-apache-sling-mcp-server' name='sling-org-apache-sling-mcp-server.git' description='Apache Sling MCP Server' />
   <project path='org-apache-sling-models-api' name='sling-org-apache-sling-models-api.git' description='Apache Sling Models API' groups='models' />
   <project path='org-apache-sling-models-caconfig' name='sling-org-apache-sling-models-caconfig.git' description='Apache Sling Models Context-Aware Configuration' groups='models' />
   <project path='org-apache-sling-models-impl' name='sling-org-apache-sling-models-impl.git' description='Apache Sling Models Implementation' groups='models' />
