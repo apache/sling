@@ -156,7 +156,7 @@
   <project path='org-apache-sling-hc-it' name='sling-org-apache-sling-hc-it.git' description='Apache Sling Health Check Integration Tests (deprecated)' groups='hc' />
   <project path='org-apache-sling-hc-junit-bridge' name='sling-org-apache-sling-hc-junit-bridge.git' description='Apache Sling Health Check JUnit Bridge (deprecated)' groups='hc' />
   <project path='org-apache-sling-hc-samples' name='sling-org-apache-sling-hc-samples.git' description='Apache Sling Health Check Samples (deprecated)' groups='hc' />
-  <project path='org-apache-sling-hc-support' name='sling-org-apache-sling-hc-support.git' description='Apache Sling Health Check Support Components' groups='hc' />
+  <project path='org-apache-sling-hc-support' name='sling-org-apache-sling-hc-support.git' description='Apache Sling Health Check Support Components (deprecated)' groups='hc' />
   <project path='org-apache-sling-hc-webconsole' name='sling-org-apache-sling-hc-webconsole.git' description='Apache Sling Health Check Webconsole Plugin (deprecated)' groups='hc' />
   <project path='org-apache-sling-i18n' name='sling-org-apache-sling-i18n.git' description='Apache Sling I18N Support' />
   <project path='org-apache-sling-installer-console' name='sling-org-apache-sling-installer-console.git' description='Apache Sling Installer WebConsole Plugin' groups='installer' />
