@@ -3,7 +3,7 @@
 ## §1 Header
 
 - **Project**: Apache Sling — a set of Java OSGi bundles for building RESTful, content-driven web applications backed by a JCR repository. This model covers the engine, API bundles, scripting integrations, JCR integration, authentication handlers, content distribution, the OSGi installer / bundle-install path, the repoinit DSL, the XSS API, and the operator surfaces (Web Console, JMX, WebDAV/DavEx). Example assemblies (Sling Starter, Sling CMS) and build-time tooling are explicitly placed out of model (§3).
-- **Version / commit**: Written against the working-tree checkout under `/home/robert/sources/apache/sling` as of **2026-06-01** (315 `org-apache-sling-*` module directories present).
+- **Version / commit**: Written against the Apache Sling source tree as of **2026-06-01** (315 `org-apache-sling-*` modules present).
 - **Author**: Sling PMC (draft, AI-assisted, derived outside-in from public artifacts).
 - **Status**: **Draft v1 — for Sling PMC review.** Derived from the published security policy, the project wiki, published CVE advisories, and source inspection. The model was additionally informed by the project's historical private security-list triage practice (no private discussion, reporter, or individual is reproduced here — only positions that are public policy or are visible in published CVE advisories). No question wave has yet been answered by the current PMC; every architectural judgement below is *(inferred)* with a backing question in §14 unless it is *(documented)* in one of those sources.
 - **Version binding**: Single model, tracking **HEAD**. A report against a specific bundle version is triaged against the model as written here; when the model changes, the change is dated in this header and past triage decisions may be revisited. The unit of supported product is the **individual OSGi bundle**, not an assembly *(inferred — §14 W1Q1; strongly supported by the per-bundle release cadence and the security-policy dependency stance)*.
@@ -472,7 +472,6 @@ The deployer / assembler must:
 - **"`resourceresolver` reads environment variables."** `StringInterpolationProviderImpl` reads `System.getenv` for operator-configured placeholders — opt-in, operator-controlled. `OUT-OF-MODEL: trusted-input` *(inferred — §14 W2Q13)*.
 - **"Oak permitted access I didn't expect."** Routes to Jackrabbit/Oak — Sling claims non-bypass, not Oak's evaluation semantics. *(inferred — §14 W3Q14)*
 - **"Non-constant-time equality in an auth bundle."** Generically disclaimed (§9). `BY-DESIGN: property-disclaimed` unless that bundle's docs claimed constant-time *(inferred — §14 W3Q16)*.
-- **"`cve-2025-54988-poc/` is a malicious file in the repo."** A research POC checked into this working tree; not Sling code, not in any release. `OUT-OF-MODEL: unsupported-component`.
 
 ---
 
@@ -501,7 +500,7 @@ Per the HEAD-tracking binding (§1), the model is revised in place. Triggers:
 | `VALID-HARDENING` | No §8 property violated, but a §11 misuse is easy enough that Sling elects to harden (often **opt-in, off by default** for backward compat — cf. CVE-2022-45064). Fixed at PMC discretion; may or may not get a CVE. | §11 |
 | `OUT-OF-MODEL: trusted-input` | Requires attacker control of a §6 parameter marked trusted (repoinit, content-package source, operator config, env-var placeholders). | §6 |
 | `OUT-OF-MODEL: adversary-not-in-scope` | Requires a §7-excluded capability (admin, code deploy, JVM control, side-channel observation). | §7 |
-| `OUT-OF-MODEL: unsupported-component` | Lands in §3 code (samples, archetypes, tooling, site/infra, POC). | §3 |
+| `OUT-OF-MODEL: unsupported-component` | Lands in §3 code (samples, archetypes, tooling, site/infra). | §3 |
 | `OUT-OF-MODEL: non-default-build` | Only manifests under a §5a knob / assembly default the maintainer marks dev-only. | §5a |
 | `OUT-OF-MODEL: assembly-level` | About an assembly's composition/defaults (Starter, Sling CMS), not a per-bundle property. | §1, §2 |
 | `BY-DESIGN: property-disclaimed` | Concerns a §9 disclaimed property or false friend. | §9 |
