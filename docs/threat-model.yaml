@@ -1,0 +1,544 @@
+# Apache Sling — Threat Model: machine-readable companion (§15 sidecar)
+#
+# DERIVED INDEX. The prose document threat-model.md is CANONICAL; this file is
+# a structured projection of it for automated / AI-assisted triage. Regenerate
+# whenever the prose changes — drift between the two is a §12 revision trigger.
+# Section anchors (§N) point back into threat-model.md.
+
+meta:
+  project: Apache Sling
+  document: threat-model.md
+  doc_version: v7
+  date: 2026-06-02
+  status: >-
+    All four §14 question waves and meta-questions ratified by the maintainer
+    (2026-06-02). §13 disposition labels adopted provisionally (M1). Canonical
+    once accepted by the Sling PMC.
+  canonical_path: aggregator/docs/threat-model.md
+  prose_is_canonical: true
+  regenerate_on_prose_change: true
+
+# ---------------------------------------------------------------------------
+# §2 Component families — in/out of model
+# ---------------------------------------------------------------------------
+component_families:
+  - name: HTTP request engine
+    entry_point: "SlingMainServlet -> SlingRequestProcessor"
+    touches_os_network: network-in
+    in_model: true
+  - name: Resource resolution
+    entry_point: "ResourceResolverFactory, ResourceUtil.normalize"
+    touches_os_network: none
+    in_model: true
+  - name: Servlet/script resolution
+    entry_point: "servlets-resolver (SlingServletResolver)"
+    touches_os_network: none
+    in_model: true
+  - name: Authentication
+    entry_point: "auth-core, auth-form, auth-oauth-client, auth-saml2"
+    touches_os_network: network-out (OAuth/SAML IdP)
+    in_model: true
+  - name: Authorization / access
+    entry_point: "JCR ACLs (Oak), resourceaccesssecurity, jcr-resourcesecurity, commons-permissions*"
+    touches_os_network: none
+    in_model: true
+  - name: Write surface
+    entry_point: "servlets-post (SlingPostServlet)"
+    touches_os_network: none
+    in_model: true
+  - name: Scripting
+    entry_point: "scripting-{core,sightly,jsp,javascript,groovy,freemarker,thymeleaf,esx,...}"
+    touches_os_network: "sandbox effectively absent; full Java for JSP/Groovy/JS"
+    in_model: true
+  - name: OSGi install path
+    entry_point: "installer-core, installer-provider-{jcr,file,installhook}, installer-factory-*"
+    touches_os_network: filesystem
+    in_model: true
+    note: high blast radius
+  - name: JCR integration
+    entry_point: "jcr-{api,base,oak-server,resource,davex,webdav,contentloader,packageinit}"
+    touches_os_network: filesystem (segment store)
+    in_model: true
+  - name: Repository-init DSL
+    entry_point: "jcr-repoinit, repoinit-parser"
+    touches_os_network: none
+    in_model: true
+  - name: Content distribution
+    entry_point: "distribution-{api,core,journal,journal-kafka,avro-serializer,kryo-serializer}"
+    touches_os_network: network-out, Kafka
+    in_model: true
+  - name: Content packages
+    entry_point: "installer-factory-packages, jcr-contentloader, feature-extension-content"
+    touches_os_network: filesystem
+    in_model: true
+  - name: XSS API
+    entry_point: "xss (XSSAPI, XSSFilter)"
+    touches_os_network: none
+    in_model: true
+  - name: Output rewriting
+    entry_point: rewriter
+    touches_os_network: none
+    in_model: true
+  - name: Resource merging
+    entry_point: "resourcemerger (MergedResource)"
+    touches_os_network: none
+    in_model: true
+  - name: Operator surfaces
+    entry_point: "Felix Web Console, extensions-webconsolesecurityprovider, jmx-provider, tooling-support-*, serviceuser-webconsole"
+    touches_os_network: network-in (admin port)
+    in_model: true
+    note: TB7
+  - name: Logging
+    entry_point: "commons-log, commons-log-webconsole"
+    touches_os_network: filesystem (log files)
+    in_model: true
+  - name: Job & event
+    entry_point: "event, jobs, discovery-*"
+    touches_os_network: network-out (peer discovery)
+    in_model: true
+  - name: External integrations
+    entry_point: "commons-messaging-mail, jms, mongodb, cassandra, nosql-couchbase-*, clam, mcp-server*"
+    touches_os_network: network-out, native processes
+    in_model: true
+    note: TB6
+  - name: Crypto convenience
+    entry_point: commons-crypto
+    touches_os_network: none
+    in_model: true
+  - name: Legacy/retired utilities
+    entry_point: "commons-json (retired), pipes"
+    touches_os_network: none
+    in_model: true
+    note: see §3 / §11a
+  - name: Feature Model build tooling
+    entry_point: "feature, feature-launcher, slingfeature-maven-plugin, feature-cpconverter, feature-analyser*"
+    touches_os_network: filesystem, Maven repo (build time)
+    in_model: false
+    reason_if_out: build-time tooling (§3)
+  - name: Archetypes
+    entry_point: "*-archetype/"
+    touches_os_network: n/a (scaffolding)
+    in_model: false
+    reason_if_out: scaffolding; generated code is the integrator's (§3)
+  - name: Committer / release tooling
+    entry_point: "tooling-{github,jenkins,release,scm}, committer-cli, slingpackager, ide-tooling"
+    touches_os_network: network-out
+    in_model: false
+    reason_if_out: out of layer (§3)
+  - name: Samples & demo content
+    entry_point: "samples/*, *-examples, starter-content, hapi-samplecontent, *-it-services, hc-samples"
+    touches_os_network: n/a
+    in_model: false
+    reason_if_out: illustrative, not for production (§3)
+  - name: Test-only bundles
+    entry_point: "*-it, testing-*, junit-*, paxexam-util, testing-clients"
+    touches_os_network: n/a
+    in_model: false
+    reason_if_out: must never be installed into production (§3)
+
+# ---------------------------------------------------------------------------
+# §5a Build-time / configuration knobs that move the security envelope
+# ---------------------------------------------------------------------------
+build_flags:
+  - name: "jcr-base LoginAdminWhitelist"
+    default: empty (deny)
+    effect: which bundles may call loginAdministrative
+    stance: safe default; assembler adds entries explicitly
+  - name: "serviceusermapper.amended"
+    default: none
+    effect: maps OSGi bundle -> JCR principal
+    stance: each bundle needing a service user declares its mapping; otherwise privileged login denied
+  - name: "installer-provider-jcr watch paths"
+    default: none
+    effect: JCR paths bundles install from
+    stance: in-model only if a low-priv principal can write to a configured path (§4)
+  - name: "security ReferrerFilter"
+    default: active when installed; conservative allow-list
+    effect: anti-CSRF for state-changing requests
+    stance: per-bundle property §8 #13
+  - name: "security ContentDispositionFilter"
+    default: disabled until configured with paths
+    effect: forces Content-Disposition attachment for binary downloads
+    stance: property §8 #14 holds when enabled+configured
+  - name: "jaxp-configurator"
+    default: when installed and started first, sets JVM-global JAXP factories to safe (XXE-off) defaults
+    effect: disables XXE in JAXP
+    stance: required mitigation for assemblies parsing user XML/PDF/Office (CVE-2025-66516)
+  - name: "auth-core sling.auth.requirements"
+    default: no path authenticated until configured
+    effect: which paths require auth
+    stance: per-assembly config
+  - name: "jcr-resourcesecurity"
+    default: ResourceAccessGate for JCR; per-config
+    effect: provider-context access gating
+    stance: documented (resource-access-security)
+  - name: "extensions-webconsolesecurityprovider"
+    default: replaces Felix default Web Console auth with JCR-backed auth when installed
+    effect: Web Console hardening building block
+    stance: opt-in
+  - name: "distribution-* receive endpoint"
+    default: disabled until configured with peer identity
+    effect: accepts content from peers
+    stance: per-assembly config
+  - name: "engine include content-type-conflict check"
+    default: off by default (opt-in)
+    effect: throws when an included servlet sets a conflicting content-type (CVE-2022-45064 hardening)
+    stance: kept off-by-default for backward compatibility; may flip later
+  - name: "mcp-server"
+    default: opt-in; not in Starter
+    effect: exposes a Model Context Protocol surface
+    stance: operator-only surface, same posture as the Web Console
+
+# Scripting-engine contextual-escape contract (§5a / §8 #4)
+scripting_engines:
+  - bundle: "scripting-sightly-* (HTL)"
+    contextual_escape_contract: true
+    status: first-class, canonical
+  - bundle: "scripting-jsp*"
+    contextual_escape_contract: false
+    status: in scope; authors must encode via xss XSSAPI
+  - bundle: "scripting-javascript (Rhino), -groovy, -freemarker, -thymeleaf, -esx"
+    contextual_escape_contract: false
+    status: in scope as bundles; no encoding/sandboxing claim; JSP/Groovy/JS reach full Java
+
+# ---------------------------------------------------------------------------
+# §6 Entry points — per-parameter trust
+# ---------------------------------------------------------------------------
+entry_points:
+  - route: "GET /<path>(.<selector>).<ext>(/suffix)"
+    parameter: path, selectors, extension, suffix
+    attacker_controllable: true
+    caller_must: "resolution rules; ACLs on /apps,/libs,/etc; selectors must not redirect to privileged scripts (CVE-2024-23673 class)"
+  - route: "POST <path> (SlingPostServlet)"
+    parameter: ":operation (delete/copy/move/import/...)"
+    attacker_controllable: true
+    caller_must: which roles may invoke each operation; all writes go through the requesting principal's session
+  - route: "POST <path>"
+    parameter: "sling:resourceType, :redirect, @TypeHint, @CopyFrom/@MoveFrom, :name(Hint)"
+    attacker_controllable: true
+    caller_must: ACLs preventing write to privileged-script types; open-redirect guard on :redirect; node-name sanitisation
+  - route: "Multipart upload (any servlet)"
+    parameter: filename, content-type, body
+    attacker_controllable: true
+    caller_must: upload-size caps; treat MIME detection as advisory (§9); ContentDispositionFilter for served binaries
+  - route: "auth-form /j_security_check"
+    parameter: "j_username, j_password, resource (redirect)"
+    attacker_controllable: true
+    caller_must: edge rate-limiting (§9); redirect-target validation (CVE-2017-15700 class)
+  - route: "auth-oauth-client callback"
+    parameter: "code, state, id_token, JWT claims"
+    attacker_controllable: true
+    caller_must: state/nonce correlation, audience/issuer/signature/expiry checks (§8 #8)
+  - route: "auth-saml2 ACS"
+    parameter: SAML response
+    attacker_controllable: true
+    caller_must: signature verification, replay protection (§8 #8)
+  - route: "/system/console/*, /system/console/bundles upload"
+    parameter: all parameters, uploaded JAR
+    attacker_controllable: true
+    must_not_be_on_TB1: true
+    caller_must: operator gates this surface (TB7)
+  - route: "jcr-davex / jcr-webdav"
+    parameter: HTTP method + body
+    attacker_controllable: true
+    caller_must: auth + ACLs; network-restrict
+  - route: "Distribution receive endpoint (HTTP transport)"
+    parameter: serialized package
+    attacker_controllable: true
+    trust_boundary: TB2
+    caller_must: authenticated peer; payload integrity is the operator's (sign externally)
+  - route: "Kafka topic (distribution-journal-kafka)"
+    parameter: Avro/Kryo message
+    attacker_controllable: false
+    trust_boundary: TB2
+    caller_must: >-
+      trusted-only: the topic ACL is the trust boundary; only an authenticated
+      producer can place bytes on the topic, so the serialized message is
+      treated as trusted input. Deployer must ACL the topic (§10 #14). The
+      deserializer is NOT held safe against malformed input (see §8 #12 / §11a).
+  - route: "jcr-repoinit parser input"
+    parameter: repoinit DSL
+    attacker_controllable: false
+    caller_must: trusted-only; operator-supplied at boot (§4)
+  - route: "Tika / content detection"
+    parameter: uploaded binary (PDF/Office/XML)
+    attacker_controllable: true
+    caller_must: XXE mitigation via jaxp-configurator (deployer must include it) (CVE-2025-66516)
+  - route: "Legacy commons-json parse"
+    parameter: JSON/XML text
+    attacker_controllable: true
+    caller_must: bounded nesting depth; module retired, migrate to Johnzon (CVE-2022-47937)
+  - route: "resourcemerger MergedResource"
+    parameter: merge path
+    attacker_controllable: true
+    caller_must: path shape; repeated merge-root segments are the CVE-2023-26513 DoS class
+
+# ---------------------------------------------------------------------------
+# §8 Security properties Sling provides
+# severity: cve-class | valid-hardening
+# ---------------------------------------------------------------------------
+properties:
+  - id: P1
+    statement: The servlet/script resolver respects its configured search-path list; URL parts cannot resolve a script outside configured search paths, and path normalisation must not leave traversal sequences that bypass the path check.
+    bundles: [engine, servlets-resolver, api (ResourceUtil.normalize)]
+    violation_symptom: a crafted URL executes a script under a path the search list excludes (path traversal, selector confusion, resolver bypass)
+    severity: cve-class
+    realised: CVE-2024-23673
+    provenance: documented (CVE-2024-23673 advisory)
+  - id: P2
+    statement: JCR (Oak) ACLs are authoritative for content access; Sling does not bypass them. Commitment is non-bypass, not Oak's evaluation semantics.
+    violation_symptom: read/write succeeds for a principal Oak's ACL denies, due to Sling using a more-privileged session or skipping the session
+    severity: cve-class
+    provenance: maintainer (Wave 3 2026-06-02)
+  - id: P3
+    statement: Bundle install requires write access to a configured install path; only a principal with write rights on the configured path can cause installer-provider-jcr/-file to install a bundle.
+    violation_symptom: a bundle installs from an unauthorised path or by a principal lacking that write right
+    severity: cve-class
+    provenance: maintainer (Wave 2 2026-06-02)
+  - id: P4
+    statement: HTL / Sightly is a contextual auto-escaping template language; expressions are escaped for the surrounding context. Applies only to HTL.
+    violation_symptom: a value emitted via standard HTL syntax appears unescaped for its context (explicit @context='unsafe' is a documented escape)
+    severity: cve-class
+    provenance: maintainer (Wave 1 2026-06-02; HTL spec)
+  - id: P5
+    statement: XSSAPI / XSSFilter produce output safe for the requested context when the correct encodeForX is used.
+    scope_limit: 'XSSAPI.getValidHref guarantees syntactic href validity, NOT a safe URL scheme (blocks the javascript scheme but passes data: etc.) — a §9 false friend.'
+    violation_symptom: input survives the correct encodeForX for its context and still executes there
+    severity: cve-class
+    provenance: documented (xss README/Javadoc)
+  - id: P6
+    statement: SlingPostServlet dispatches every write through the requesting principal's JCR session — never a silently-elevated session. Commits to correct session use, not to Oak's ACL evaluation.
+    bundles: [servlets-post]
+    violation_symptom: SlingPostServlet performs a write via an elevated session for a non-elevated request, or bypasses the session entirely
+    out_of_property: "'Oak allowed X it shouldn't have' routes to Jackrabbit (§9)"
+    severity: cve-class
+    provenance: maintainer (Wave 3 2026-06-02)
+  - id: P7
+    statement: Authentication handlers either authenticate or pass through; they never silently elevate. A failed handler leaves the request anonymous.
+    violation_symptom: a request becomes authenticated as principal P without valid credentials for P
+    severity: cve-class
+    provenance: maintainer (Wave 4 2026-06-02)
+  - id: P8
+    statement: OAuth/OIDC and SAML2 handlers verify the cryptographic envelope (state/nonce, audience, issuer, signature, expiry).
+    bundles: [auth-oauth-client, auth-saml2]
+    violation_symptom: an unsigned, expired, replayed, or wrong-audience assertion produces a session
+    severity: cve-class
+    provenance: maintainer (Wave 4 2026-06-02)
+  - id: P9
+    statement: No super-linear resource consumption in input size for documented operations (super-linear on reasonable-size input is a bug; linear-in-input is not).
+    violation_symptom: a small input causes disproportionate CPU/memory/time (algorithmic-complexity DoS, billion-laughs, unbounded parser recursion, ReDoS in a shipped parser)
+    severity: cve-class-when-small-easy-single-shot-TB1 else valid-hardening
+    realised: [CVE-2023-26513, CVE-2022-47937]
+    provenance: documented threshold; severity calibration maintainer (Wave 3 2026-06-02)
+  - id: P10
+    statement: rewriter does not itself introduce XSS; transformations emit attacker-controlled content only through the configured escaping policy.
+    violation_symptom: a rewriter transformer un-escapes or re-introduces active markup into content that arrived correctly escaped, so attacker-controlled data executes in the rendered response
+    severity: cve-class
+    provenance: maintainer (Wave 4 2026-06-02)
+  - id: P11
+    statement: Logging does not allow log forging via request data; request-derived values reaching the log are neutralised against CRLF/control-character injection.
+    violation_symptom: a request containing CRLF (%0A%0D) forges fake log lines (log injection / log forging)
+    severity: cve-class
+    realised: CVE-2022-32549
+    provenance: documented (CVE-2022-32549 advisory)
+  - id: P12
+    statement: Content distribution authenticates the peer, not the payload. A configured peer identity (HTTP Basic/OAuth/mTLS/Kafka SASL+ACL) is required; no anonymous party can inject content. No payload signature/MAC/replay-nonce. The HTTP Digest header is a corruption checksum, not a MAC.
+    bundles: ["distribution-{api,core,journal,journal-kafka}"]
+    violation_symptom: a request without/with-forged peer credentials mutates the receiver; or the digest check fails to reject a corrupted payload
+    severity: cve-class
+    disclaimed: payload integrity between authenticated peers (§9)
+    kafka_journal_trust_boundary: >-
+      For the Kafka journal transport (distribution-journal-kafka,
+      distribution-avro-serializer, distribution-kryo-serializer) the TOPIC ACL
+      is the trust boundary; the serialized message is trusted input. Sling
+      makes NO claim the Avro/Kryo deserializer is safe against malformed
+      messages; a deserialization crash/RCE there is OUT-OF-MODEL:trusted-input,
+      not a violation of this property. Deployer must ACL the topic (§10 #14).
+    provenance: maintainer (Wave 2 2026-06-02; Kafka clause 2026-06-02)
+  - id: P13
+    statement: ReferrerFilter rejects state-changing requests whose Referer/Origin is not allow-listed (default-deny for cross-origin POST/PUT/DELETE when active).
+    violation_symptom: a cross-origin write succeeds despite a non-whitelisted Referer
+    severity: cve-class
+    provenance: maintainer (Wave 4 2026-06-02)
+  - id: P14
+    statement: ContentDispositionFilter forces Content-Disposition attachment for binary downloads under configured paths.
+    violation_symptom: a binary from a configured path is served without the header
+    severity: cve-class
+    provenance: maintainer (Wave 4 2026-06-02)
+  - id: P15
+    statement: The OSGi Web Console is a fully-privileged operator surface that must be access-restricted; extensions-webconsolesecurityprovider is a hardening building block, the restriction itself is the operator's.
+    violation_symptom: a Sling bundle weakens or bypasses the operator-configured Web Console authn/authz (e.g. extensions-webconsolesecurityprovider fails open), letting a non-operator reach console functions
+    severity: cve-class-if-bundle-weakens-restriction else out-of-model:non-default-build
+    provenance: documented (CWiki Threat model)
+  - id: P15a
+    statement: Runtime content-package processing is expected to be resource-bounded and to confine extraction to declared paths (no decompression-bomb amplification, no super-linear CPU on a small package, no extraction path-traversal).
+    bundles: [installer-factory-packages, jcr-contentloader, feature-extension-content]
+    violation_symptom: a small crafted package exhausts memory/CPU on unpack, or an entry escapes the target subtree and writes to an unintended repository/filesystem path
+    severity: valid-hardening
+    provenance: maintainer (Wave 2 2026-06-02)
+
+# ---------------------------------------------------------------------------
+# §9 Properties NOT provided + false friends
+# ---------------------------------------------------------------------------
+disclaimed:
+  - No defense against generic DoS (streaming bombs, floods, slowloris) — deployer rate-limits at the edge.
+  - No transport security (TLS) — deployer terminates upstream.
+  - No rate limiting / brute-force protection on login endpoints.
+  - No multi-tenant isolation within a single JVM.
+  - No sandbox for bundle code or non-HTL script engines; code deploy = total compromise.
+  - No CSRF protection if ReferrerFilter is disabled/misconfigured.
+  - No constant-time comparison guarantees anywhere unless a bundle's docs explicitly claim it.
+  - No auto-escaping in JSP or JS/Groovy/FreeMarker/Thymeleaf/ESX; authors must call XSSAPI.
+  - XSSAPI.getValidHref does not enforce a safe URL scheme (syntactic validity != semantic safety).
+  - No payload integrity/authenticity in distribution between authenticated peers.
+  - No content-package authorship verification (distinct from package processing safety, §8 #15a).
+  - No defensive parsing of repoinit input (operator-controlled).
+  - No claim on Oak's ACL evaluation semantics ('Oak permitted X' routes to Jackrabbit).
+  - No script-source confidentiality (scripts are content; ACL-governed).
+  - No assembly-level guarantee (properties attach to bundles, not Starter/Sling CMS as a whole).
+
+false_friends:
+  - claim: 'XSSAPI.getValidHref is not a safe-URL gate — validates href syntax, not scheme; the data: scheme and others pass.'
+  - claim: commons-mime content-type detection is advisory, not a security gate.
+  - claim: the distribution HTTP Digest header is a corruption checksum, not a MAC.
+  - claim: commons-crypto is a convenience layer; accepts weak/deprecated algorithms, no constant-time guarantee.
+  - claim: a JCR session is an authorization context, not a MAC of its contents.
+
+# ---------------------------------------------------------------------------
+# §11a Known non-findings — the scan suppression list
+# ---------------------------------------------------------------------------
+known_non_findings:
+  - id: NF1
+    reported: "Dependency X has CVE Z"
+    disposition: DEPENDENCY-NON-FINDING
+    licensed_by: "§3 / Dependabot wiki"
+    note: not a Sling bug unless X is embedded, shipped directly in a Sling assembly, a Maven plugin, or Node.js; verify actual usage
+  - id: NF2
+    reported: "Default admin/admin Web Console or JCR password in production"
+    disposition: "OUT-OF-MODEL: non-default-build"
+    licensed_by: "§5a"
+  - id: NF3
+    reported: "Sling Starter ships weak ACLs / anonymous can read /content/*.json"
+    disposition: "OUT-OF-MODEL: non-default-build"
+    licensed_by: "§2 unit-of-product, §3"
+  - id: NF4
+    reported: "/system/console/configMgr exposes secrets"
+    disposition: "OUT-OF-MODEL: trusted-input"
+    licensed_by: "§6, §7 (operator surface)"
+  - id: NF5
+    reported: "Crafted file download via the JSON renderer (e.g. suffix .exe)"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§9"
+    note: response body is always valid JSON regardless of suffix
+  - id: NF6
+    reported: "XSS in HtmlResponse/location via a POST parameter"
+    disposition: KNOWN-NON-FINDING
+    licensed_by: "§8 #13 (CSRF), §11a"
+    note: CVE-2019-0198 reserved then withdrawn; cross-origin write blocked by CSRF protection
+  - id: NF7
+    reported: "getValidHref allows data: URLs"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§8 #5 scope limit, §9 false friend"
+  - id: NF8
+    reported: "Session leak in Sling Models"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§11 (developer error: unprotected shared mutable state)"
+  - id: NF9
+    reported: "Jexl expression injection in pipes"
+    disposition: "OUT-OF-MODEL: adversary-not-in-scope"
+    licensed_by: "§3, §7 (requires admin)"
+  - id: NF10
+    reported: "JNDI/RMI lookup in jcr-base RepositoryAccessor"
+    disposition: "KNOWN-NON-FINDING on current version (feature removed); VALID on a pre-fix version"
+    licensed_by: "CVE-2023-25621"
+  - id: NF11
+    reported: "Groovy/JSP/JS script can call Runtime.exec"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§9 (code deploy = total compromise)"
+  - id: NF12
+    reported: "FreeMarker/Thymeleaf/ESX/JSP output is not auto-escaped"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§9 (only HTL auto-escapes)"
+  - id: NF13
+    reported: "Streaming X GB to a POST exhausts memory"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§3, §9 (generic DoS)"
+  - id: NF14
+    reported: "commons-json OOM/StackOverflow on nested input"
+    disposition: "KNOWN-NON-FINDING (retired module; migrate to Johnzon)"
+    licensed_by: "CVE-2022-47937, §10 #20"
+  - id: NF15
+    reported: "Tika XXE/SSRF via attacker PDF"
+    disposition: "VALID against jaxp-configurator if included+started; else OUT-OF-MODEL: trusted-input against Sling; Tika itself PUNT-UPSTREAM"
+    licensed_by: "CVE-2025-66516"
+  - id: NF16
+    reported: "installer-factory-packages accepts an unsigned/unauthenticated content package"
+    disposition: "BY-DESIGN: property-disclaimed (authorship); but malformed-package bomb/CPU/extraction-traversal is VALID-HARDENING per §8 #15a"
+    licensed_by: "§9, §8 #15a"
+  - id: NF17
+    reported: "Unsafe deserialization in the Kryo/Avro distribution-journal serializer"
+    disposition: "OUT-OF-MODEL: trusted-input"
+    licensed_by: "§8 #12 Kafka clause, §4 carve-out"
+    note: Kafka topic ACL is the trust boundary; only an authenticated producer supplies bytes. Distinct from the HTTP-transport malformed-package path, which remains in-model.
+  - id: NF18
+    reported: "/.git exposed on sling.apache.org"
+    disposition: "OUT-OF-MODEL: unsupported-component (site/infra)"
+    licensed_by: "§3"
+  - id: NF19
+    reported: "commons-scheduler sets quartz skipUpdateCheck; commons-log sets java.util.logging.config.class; feature-launcher registers a shutdown hook"
+    disposition: KNOWN-NON-FINDING
+    licensed_by: "§5 (scoped/by-design)"
+  - id: NF20
+    reported: "resourceresolver reads environment variables"
+    disposition: "OUT-OF-MODEL: trusted-input"
+    licensed_by: "§5 (StringInterpolationProviderImpl, operator-configured, opt-in)"
+  - id: NF21
+    reported: "Oak permitted access I didn't expect"
+    disposition: "OUT-OF-MODEL / route to Jackrabbit"
+    licensed_by: "§8 #6, §9 (no claim on Oak ACL semantics)"
+  - id: NF22
+    reported: "Non-constant-time equality in an auth bundle"
+    disposition: "BY-DESIGN: property-disclaimed"
+    licensed_by: "§9 (unless that bundle's docs claimed constant-time)"
+
+# ---------------------------------------------------------------------------
+# §13 Triage dispositions — provisional (M1)
+# ---------------------------------------------------------------------------
+dispositions_status: provisional
+dispositions:
+  - label: VALID
+    definition: Violates a §8 property via an in-scope §7 adversary with §6-attacker-controllable input.
+    licensed_by: "§6, §7, §8"
+  - label: VALID-HARDENING
+    definition: No §8 property violated, but a §11 misuse is easy enough that Sling elects to harden (often opt-in/off-by-default). Fixed at PMC discretion; may or may not get a CVE.
+    licensed_by: "§11"
+  - label: "OUT-OF-MODEL: trusted-input"
+    definition: Requires attacker control of a §6 parameter marked trusted (repoinit, content-package source, operator config, env-var placeholders, Kafka journal message).
+    licensed_by: "§6"
+  - label: "OUT-OF-MODEL: adversary-not-in-scope"
+    definition: Requires a §7-excluded capability (admin, code deploy, JVM control, side-channel observation).
+    licensed_by: "§7"
+  - label: "OUT-OF-MODEL: unsupported-component"
+    definition: Lands in §3 code (samples, archetypes, tooling, site/infra).
+    licensed_by: "§3"
+  - label: "OUT-OF-MODEL: non-default-build"
+    definition: Only manifests under a §5a knob / assembly default the maintainer marks dev-only.
+    licensed_by: "§5a"
+  - label: "OUT-OF-MODEL: assembly-level"
+    definition: About an assembly's composition/defaults (Starter, Sling CMS), not a per-bundle property.
+    licensed_by: "§1, §2"
+  - label: "BY-DESIGN: property-disclaimed"
+    definition: Concerns a §9 disclaimed property or false friend.
+    licensed_by: "§9"
+  - label: KNOWN-NON-FINDING
+    definition: Matches a §11a pattern.
+    licensed_by: "§11a"
+  - label: DEPENDENCY-NON-FINDING
+    definition: Vulnerable transitive dependency outside the Dependabot exceptions; verify actual usage first.
+    licensed_by: "§3 / Dependabot wiki"
+  - label: PUNT-UPSTREAM
+    definition: The flaw is in Jackrabbit Oak / Tika / Felix / another upstream; coordinate there.
+    licensed_by: "§3, §9"
+  - label: MODEL-GAP
+    definition: Cannot be routed to the above; triggers a §12 revision.
+    licensed_by: "(none — by definition)"
