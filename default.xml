@@ -4,6 +4,7 @@
   <default revision='master' remote='origin' />
   <project path='adapter-annotations' name='sling-adapter-annotations.git' description='Apache Sling Adapter Annotations' />
   <project path='aggregator' name='sling-aggregator.git' description='Apache Sling Aggregator' />
+  <project path='agent-skills' name='sling-agent-skills.git' description='Apache sling' />
   <project path='apache-sling-jar-resource-bundle' name='sling-apache-sling-jar-resource-bundle.git' description='Apache Sling JAR Resource Bundle' />
   <project path='archetype-parent' name='sling-archetype-parent.git' description='Apache Sling Archetype Parent (deprecated)' />
   <project path='bundle-archetype' name='sling-bundle-archetype.git' description='Apache Sling Bundle Archetype (deprecated)' />
@@ -226,7 +227,7 @@
   <project path='org-apache-sling-launchpad-testing' name='sling-org-apache-sling-launchpad-testing.git' description='Apache Sling Launchpad Testing (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-launchpad-testing-war' name='sling-org-apache-sling-launchpad-testing-war.git' description='Apache Sling Launchpd Testing WAR (deprecated)' groups='launchpad' />
   <project path='org-apache-sling-mcp-server' name='sling-org-apache-sling-mcp-server.git' description='Apache Sling MCP Server' groups='mcp' />
-  <project path='org-apache-sling-mcp-server-contributions' name='sling-org-apache-sling-mcp-server-contributions.git' description='Apache sling' groups='mcp' />
+  <project path='org-apache-sling-mcp-server-contributions' name='sling-org-apache-sling-mcp-server-contributions.git' description='Apache Sling MCP Server Contributions' groups='mcp' />
   <project path='org-apache-sling-models-api' name='sling-org-apache-sling-models-api.git' description='Apache Sling Models API' groups='models' />
   <project path='org-apache-sling-models-caconfig' name='sling-org-apache-sling-models-caconfig.git' description='Apache Sling Models Context-Aware Configuration' groups='models' />
   <project path='org-apache-sling-models-impl' name='sling-org-apache-sling-models-impl.git' description='Apache Sling Models Implementation' groups='models' />
@@ -348,7 +349,7 @@
   <project path='slingstart-maven-plugin' name='sling-slingstart-maven-plugin.git' description='Apache Sling SlingStart Maven Plugin' />
   <project path='starter-comparator' name='sling-starter-comparator.git' description='Apache Sling Launchpad Comparator' />
   <project path='taglib-archetype' name='sling-taglib-archetype.git' description='Apache Sling Taglib Archetype (deprecated)' />
-  <project path='tooling-github' name='sling-tooling-github.git' description='Apache sling' revision='main' />
+  <project path='tooling-github' name='sling-tooling-github.git' description='Apache sling' />
   <project path='tooling-jenkins' name='sling-tooling-jenkins.git' description='Apache Sling Jenkins Tooling' />
   <project path='tooling-release' name='sling-tooling-release.git' description='Apache Sling Release Tooling' />
   <project path='tooling-scm' name='sling-tooling-scm.git' description='Apache Sling SCM Tooling' />
